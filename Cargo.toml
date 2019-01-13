@@ -1,0 +1,9 @@
+[package]
+name = "lambda_bot"
+version = "0.1.0"
+authors = ["Terasaki Shun <t.tera1217@gmail.com>"]
+
+[dependencies]
+yobot = "0.1.0"
+regex = "0.2.2"
+slack = "0.18.0"

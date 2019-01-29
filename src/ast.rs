@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stat {
     Let(String, Box<AST>),
@@ -107,7 +109,7 @@ impl AST {
                     self.clone()
                 } else {
                     if e.free(v2) {
-                        let new_v = e.new_variable().expect("pig flying");
+                        let new_v = e.new_variable().unwrap();
                         AST::Abs(
                             new_v.clone(),
                             Box::new(e2.assign(&AST::Var(new_v), v2).assign(e, v)),
@@ -120,7 +122,7 @@ impl AST {
         }
     }
 
-    // 1ステップのベータ簡約
+    // 1ステップの最左簡約
     pub fn step(&self) -> Self {
         match *self {
             AST::Var(_) => self.clone(),
@@ -128,7 +130,11 @@ impl AST {
                 if let AST::Abs(ref v, ref e) = **e1 {
                     e.assign(e2, v)
                 } else {
-                    AST::App(Box::new(e1.step()), Box::new(e2.step()))
+                    if e1.reductive() {
+                        AST::App(Box::new(e1.step()), Box::new(*e2.clone()))
+                    } else {
+                        AST::App(Box::new(*e1.clone()), Box::new(e2.step()))
+                    }
                 }
             }
             AST::Abs(ref v, ref e) => AST::Abs(v.to_string(), Box::new(e.step())),
@@ -148,14 +154,18 @@ impl AST {
             AST::Abs(_, ref e) => e.reductive(),
         }
     }
-
-    pub fn beta_reduction(&self) -> Self {
+    pub fn beta_reduction(&self, limitsec: u64) -> Option<Self> {
         let mut e = self.step();
+
+        let instant = Instant::now();
+        let limitsec = Duration::from_secs(limitsec);
         loop {
             if !e.reductive() {
-                return e;
+                return Some(e);
+            } else if instant.elapsed() >= limitsec {
+                return None;
             }
-            e = self.step();
+            e = e.step();
         }
     }
 }

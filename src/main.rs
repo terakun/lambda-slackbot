@@ -6,9 +6,6 @@ use std::env;
 use regex::Regex;
 use yobot::listener::{Message, MessageListener};
 use yobot::Yobot;
-use std::{thread, time};
-use std::time::Duration;
-use std::sync::mpsc::channel;
 
 pub mod ast;
 pub mod parser;
@@ -41,21 +38,11 @@ impl MessageListener for EchoListener {
 
     fn handle(&self, message: &Message, cli: &slack::RtmClient) {
         let mut parser = Parser::new();
+        let limitsec = 1;
         let res = match parser.parse(&message.text) {
             Some(stat) => {
-                let (sender, receiver) = channel();
-                thread::spawn(move || {
-                    sender.send(stat.get_expr().beta_reduction().to_string());
-                });
-                let mut mesg_opt = None;
-                for _ in 0..100 {
-                    thread::sleep(Duration::from_millis(10));
-                    if let Ok(expr) = receiver.try_recv() {
-                        mesg_opt = Some(expr);
-                    }
-                }
-                if let Some(mesg) = mesg_opt {
-                    mesg
+                if let Some(beta_normal_form) = stat.get_expr().beta_reduction(limitsec) {
+                    beta_normal_form.to_string()
                 } else {
                     "time limit exceeded".to_string()
                 }

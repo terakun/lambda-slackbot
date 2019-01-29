@@ -29,11 +29,6 @@ where
     v
 }
 
-struct Error {
-    message: String,
-    cur: usize,
-}
-
 pub type TokenErr = (String, usize);
 pub fn error_message(input: &String, err: TokenErr) -> String {
     let underbar: String = String::from_utf8(vec![b'_'; input.len() - err.1]).unwrap();
